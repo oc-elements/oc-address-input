@@ -1,0 +1,156 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../google-map/google-map.html">
+<link rel="import" href="../iron-collapse/iron-collapse.html">
+<link rel="import" href="../oc-user-api/oc-user-api.html">
+<link rel="import" href="../iron-label/iron-label.html">
+
+<!--
+`oc-address`
+Provides a form for address capturing
+
+@demo demo/index.html
+-->
+
+<dom-module id="oc-address-input">
+  <style>
+    :host {
+      display: block;
+    }
+    google-map {
+      height: 250px;
+      Width: 350px;
+    }
+  </style>
+
+  <template>
+
+    <oc-user-api id="userApi"></oc-user-api>
+
+    <iron-collapse id="captureForm" opened="[[ !_showMap ]]">
+      <paper-input id="txtName" label="Name" value="{{ name }}"></paper-input>
+      <paper-input id="txtStreetNumber" label="Street Number" allowed-pattern="[0-9]" value="{{ streetNumber }}"></paper-input>
+      <paper-input id="txtStreetName" label="StreetName" required auto-validate error-message="Please provide a street name" value="{{ streetName }}"></paper-input>
+      <paper-input id="txtComplex" label="Complex" value="{{ complex }}"></paper-input>
+      <paper-input id="txtSuburb" label="Suburb" value="{{ suburb }}"></paper-input>
+      <paper-input id="txtCity" label="City" required auto-validate error-message="Please provide a city name" value="{{ city }}"></paper-input>
+      <paper-input id="txtProvince" label="Province" value="{{ province }}"></paper-input>
+      <paper-input id="txtCountry" label="Country" value="{{ country }}"></paper-input>
+      <paper-input id="txtPostalCode" label="Postal Code" auto-validate allowed-pattern="[0-9]" value="{{ postalCode }}"></paper-input>
+      <p>
+        <paper-button id="findAddress" raised on-tap="_onFindTap">[[ _findAddressButtonText ]]</paper-button>
+      </p>
+    </iron-collapse>
+
+    <iron-collapse id="displayAddress" opened="[[ _showMap ]]">
+      <table layout="auto">
+        <tr>
+          <td>
+            <div>[[ name ]]</div>
+            <div>[[ streetNumber ]] [[ streetName ]]</div>
+            <div>[[ complex ]]</div>
+            <div>[[ suburb ]]</div>
+            <div>[[ city ]]</div>
+            <div>[[ province ]]</div>
+            <div>[[ country ]]</div>
+            <div>[[ postalCode ]]</div>
+          </td>
+          <td>
+            <paper-button raised on-tap="_onEditAddressTap">Edit Address</paper-button>
+          </td>
+        </tr>
+      </table>
+
+      <div hidden$="[[ !_geoFound ]]">
+        <p style="color:green">Address found</p>
+        <p>If it's not correct, move the marker to the location of this address</p>
+      </div>
+      <div hidden$="[[ _geoFound ]]">
+        <p style="color:red">Address not found!</p>
+        <p>Please move the marker to the location, or edit the address above</p>
+      </div>
+
+      <google-map id="map" latitude="[[ _latitude ]]" longitude="[[ _longitude ]]" api-key="AIzaSyBslrJm1JKr_1V7UhYb05FHVkQA537XwsY" zoom="17">
+        <google-map-marker latitude="{{ _latitude }}" longitude="{{ _longitude }}" draggable="true" title="[[ name ]]"></google-map-marker>
+      </google-map>
+      <p>
+        <paper-button raised on-tap="_onOkTap">OK</paper-button>
+      </p>
+    </iron-collapse>
+
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'oc-address-input',
+
+      ready: function () {
+        this._findAddressButtonText = "Find this address";
+        this._showMap = false;
+      },
+
+      /**
+       * Get the address
+       * @returns {{ longitude: String, latitude: String, name: String, streetNumber: String, streetName: String, complex: String, suburb: String, city: String, postalCode: String, province: String, country: String }} addressDetails
+       */
+      getAddress: function() {
+        return {
+          name: this.$.txtName.value,
+          streetNumber: this.$.txtStreetNumber.value,
+          streetName: this.$.txtStreetName.value,
+          complex: this.$.txtComplex.value,
+          suburb: this.$.txtSuburb.value,
+          city: this.$.txtCity.value,
+          postalCode: this.$.txtProvince.value,
+          province: this.$.txtCountry.value,
+          country: this.$.txtPostalCode.value,
+          longitude: this._latitude,
+          latitude: this._longitude
+        };
+      },
+
+      _onFindTap: function() {
+
+        var validStreetName = this.$.txtStreetName.validate();
+        var validCity = this.$.txtCity.validate();
+
+        if (validStreetName && validCity) {
+          this._findAddressButtonText = "Searching...";
+          this.$.findAddress.disabled = true;
+
+          var address = this.getAddress();
+
+          this.$.userApi.getGeoLocation(address)
+                  .then((function(ironResponse) {
+                    this._latitude = ironResponse.response.latitude;
+                    this._longitude = ironResponse.response.longitude;
+                    this._geoFound = !(this._latitude === null || this._longitude === null);
+                    this._showMap = true;
+                  }).bind(this))
+                  .catch((function(ironResponse) {
+                    this._latitude = "-33.949263";
+                    this._longitude = "18.418584";
+                    this._geoFound = false;
+                    this.$.map.zoom = 10;
+                    this._showMap = true;
+                  }).bind(this))
+                  .finally((function() {
+                    this._findAddressButtonText = "Find this address";
+                    this.$.findAddress.disabled = false;
+                  }).bind(this));
+        }
+      },
+
+      _onEditAddressTap: function() {
+        this._showMap = false;
+      },
+
+      _onOkTap: function () {
+        this.fire('ok', this.getAddress());
+      }
+
+    });
+  </script>
+</dom-module>
