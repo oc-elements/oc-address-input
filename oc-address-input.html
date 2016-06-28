@@ -38,9 +38,7 @@ Provides a form for address capturing
       <paper-input id="txtProvince" label="Province" value="{{ province }}"></paper-input>
       <paper-input id="txtCountry" label="Country" value="{{ country }}"></paper-input>
       <paper-input id="txtPostalCode" label="Postal Code" auto-validate allowed-pattern="[0-9]" value="{{ postalCode }}"></paper-input>
-      <p>
-        <paper-button id="findAddress" raised on-tap="_onFindTap">[[ _findAddressButtonText ]]</paper-button>
-      </p>
+      <p><paper-button id="findAddress" raised on-tap="_onFindTap">[[ _findAddressButtonText ]]</paper-button></p>
     </iron-collapse>
 
     <iron-collapse id="displayAddress" opened="[[ _showMap ]]">
@@ -64,31 +62,54 @@ Provides a form for address capturing
 
       <div hidden$="[[ !_geoFound ]]">
         <p style="color:green">Address found</p>
-        <p>If it's not correct, move the marker to the location of this address</p>
+        <p>If it's not correct, [EDIT LOCATION] and drag the markter to the correct place.</p>
       </div>
       <div hidden$="[[ _geoFound ]]">
         <p style="color:red">Address not found!</p>
-        <p>Please move the marker to the location, or edit the address above</p>
+        <p>Please [EDIT LOCATION] if you are sure about the address, or [EDIT ADDRESS].</p>
       </div>
 
-      <google-map id="map" latitude="[[ _latitude ]]" longitude="[[ _longitude ]]" api-key="AIzaSyBslrJm1JKr_1V7UhYb05FHVkQA537XwsY" zoom="17">
-        <google-map-marker latitude="{{ _latitude }}" longitude="{{ _longitude }}" draggable="true" title="[[ name ]]"></google-map-marker>
+      <p><paper-button raised on-tap="_onEditLocation">EDIT LOCATION</paper-button></p>
+
+      <google-map
+              id="map"
+              latitude="[[ _latitude ]]"
+              longitude="[[ _longitude ]]"
+              api-key="[[ googleMapsApiKey ]]"
+              zoom="17"
+              disable-default-ui$="[[ !_mapEnabled ]]"
+              disableZoom$="[[ !_mapEnabled ]]">
+        <google-map-marker latitude="{{ _latitude }}" longitude="{{ _longitude }}" draggable="[[ _mapEnabled ]]" title="[[ name ]]"></google-map-marker>
       </google-map>
-      <p>
-        <paper-button raised on-tap="_onOkTap">OK</paper-button>
-      </p>
+
+      <p><paper-button raised on-tap="_onOkTap">OK</paper-button></p>
     </iron-collapse>
 
   </template>
 
   <script>
+    var OC = window.OC;
     Polymer({
 
       is: 'oc-address-input',
 
+      properties: {
+        googleMapsApiKey: String
+      },
+
+      /**
+       * Fired when the user accepts the address.
+       * @event ok
+       */
+
+      created: function () {
+        OC.token =  OC.token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJiMjQxYmViYzM2NTMwZmU4ZWJkNGE0OTkzMjNlNjA1ZCIsImV4cCI6IjE1OTIyMzMzNzAiLCJwcm4iOiJydWRvbGZAb3JkZXJjbG91ZC5jby56YSJ9.ElfODyQO5jCOBG3ZvOU3uVhvDtE-nXt07aB5XjljjZU";
+      },
+
       ready: function () {
         this._findAddressButtonText = "Find this address";
         this._showMap = false;
+        this._mapEnabled = false;
       },
 
       /**
@@ -127,6 +148,7 @@ Provides a form for address capturing
                     this._latitude = ironResponse.response.latitude;
                     this._longitude = ironResponse.response.longitude;
                     this._geoFound = !(this._latitude === null || this._longitude === null);
+                    this.$.map.zoom = this._geoFound ? 17 : 10;
                     this._showMap = true;
                   }).bind(this))
                   .catch((function(ironResponse) {
@@ -145,12 +167,16 @@ Provides a form for address capturing
 
       _onEditAddressTap: function() {
         this._showMap = false;
+        this._mapEnabled = false;
       },
 
-      _onOkTap: function () {
+      _onOkTap: function() {
         this.fire('ok', this.getAddress());
-      }
+      },
 
+      _onEditLocation: function() {
+        this._mapEnabled = true;
+      }
     });
   </script>
 </dom-module>
