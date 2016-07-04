@@ -38,7 +38,10 @@ Provides a form for address capturing
       <paper-input id="txtProvince" label="Province" value="{{ province }}"></paper-input>
       <paper-input id="txtCountry" label="Country" value="{{ country }}"></paper-input>
       <paper-input id="txtPostalCode" label="Postal Code" auto-validate allowed-pattern="[0-9]" value="{{ postalCode }}"></paper-input>
-      <p><paper-button id="findAddress" raised on-tap="_onFindTap">[[ _findAddressButtonText ]]</paper-button></p>
+      <span>
+        <paper-button id="findAddress" raised on-tap="_onFindTap">[[ _findAddressButtonText ]]</paper-button>
+        <paper-button id="cancel" hidden$="[[ cancelHidden ]]" raised on-tap="_onCancel">Cancel</paper-button>
+      </span>
     </iron-collapse>
 
     <iron-collapse id="displayAddress" opened="[[ _showMap ]]">
@@ -94,7 +97,11 @@ Provides a form for address capturing
       is: 'oc-address-input',
 
       properties: {
-        googleMapsApiKey: String
+        googleMapsApiKey: String,
+        cancelHidden: {
+          type: Boolean,
+          value: false
+        }
       },
 
       /**
@@ -113,6 +120,23 @@ Provides a form for address capturing
       },
 
       /**
+       * Set the address
+       * @param {{ longitude: String, latitude: String, name: String, streetNumber: String, streetName: String, complex: String, suburb: String, city: String, postalCode: String, province: String, country: String }} address
+       */
+      setAddress: function(address) {
+        this.$.txtName.value = address.name,
+                this.$.txtStreetNumber.value = address.streetNumber,
+                this.$.txtStreetName.value = address.streetName,
+                this.$.txtComplex.value = address.complex,
+                this.$.txtSuburb.value = address.suburb,
+                this.$.txtCity.value = address.city,
+                this.$.txtProvince.value = address.province,
+                this.$.txtCountry.value = address.country,
+                this.$.txtPostalCode.value = address.postalCode
+      },
+
+
+      /**
        * Get the address
        * @returns {{ longitude: String, latitude: String, name: String, streetNumber: String, streetName: String, complex: String, suburb: String, city: String, postalCode: String, province: String, country: String }} addressDetails
        */
@@ -124,11 +148,11 @@ Provides a form for address capturing
           complex: this.$.txtComplex.value,
           suburb: this.$.txtSuburb.value,
           city: this.$.txtCity.value,
-          postalCode: this.$.txtProvince.value,
-          province: this.$.txtCountry.value,
-          country: this.$.txtPostalCode.value,
-          longitude: this._latitude,
-          latitude: this._longitude
+          province: this.$.txtProvince.value,
+          country: this.$.txtCountry.value,
+          postalCode: this.$.txtPostalCode.value,
+          latitude: this._latitude,
+          longitude: this._longitude
         };
       },
 
@@ -171,11 +195,17 @@ Provides a form for address capturing
       },
 
       _onOkTap: function() {
-        this.fire('ok', this.getAddress());
+        this._showMap = false;
+        this.fire('on-ok', this.getAddress());
       },
 
       _onEditLocation: function() {
         this._mapEnabled = true;
+      },
+
+      _onCancel: function() {
+        this._showMap = false;
+        this.fire('on-cancel');
       }
     });
   </script>
